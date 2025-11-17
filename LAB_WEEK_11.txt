@@ -1,0 +1,44 @@
+1. When a user takes a picture, that picture is stored in a path based on the given
+URI. In which part of the code handles this? (Copy that part of the code as the
+answer)
+2. In your FileInfo.kt, there are 5 attributes. On the first attribute, what does the URI
+refer to? And on the fourth attribute, what does relativePath refer to?
+3. [Bonus] Explain the chronological order from when a user takes a picture until
+the file is stored in the MediaStore.
+
+
+Jawab:
+
+1. ProviderFileManager.kt
+
+private fun insertToStore(
+    fileInfo: FileInfo,
+    contentUri: Uri,
+    contentValues: ContentValues
+) {
+    executor.execute {
+        val insertedUri = contentResolver.insert(contentUri, contentValues)
+        insertedUri?.let { uri ->
+            val inputStream = contentResolver.openInputStream(fileInfo.uri)
+            val outputStream = contentResolver.openOutputStream(uri)
+            IOUtils.copy(inputStream, outputStream)
+        }
+    }
+}
+
+
+2. Atribut 1: uri adalah URI sementara yang diberikan oleh FileProvider.
+URI ini menunjuk ke file sementara yang disimpan di folder aplikasi (getExternalFilesDir(...)) dan digunakan kamera untuk menulis hasil foto/video. URI ini juga dipakai sebagai sumber InputStream ketika kita menyalin file ke MediaStore.
+
+Atribut 4: relativePath adalah path relatif di dalam MediaStore / penyimpanan eksternal tempat file akan disimpan.
+Contohnya untuk foto: Environment.DIRECTORY_PICTURES → folder “Pictures”. Nilai ini digunakan di ContentValues (MediaStore.Images.Media.RELATIVE_PATH atau MediaStore.Video.Media.RELATIVE_PATH) sehingga MediaStore tahu di folder mana file akan ditempatkan (misal Pictures/ atau Movies/)
+
+3. 
+- User tekan tombol Photo
+- App menentukan bahwa user ingin ambil foto.
+- App cek permission (jika perlu)
+- App membuat FileInfo (nama file + URI FileProvider)
+- App menjalankan kamera via ActivityResult
+- Kamera selesai → callback dipanggil
+- App menyalin file ke MediaStore
+- Foto muncul di Gallery
